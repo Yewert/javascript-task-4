@@ -58,7 +58,11 @@ function getEmitter() {
          * @returns {Object}
          */
         off: function (event, context) {
-            subscriptions.get(event).delete(context);
+            for (let eventName of subscriptions.keys()) {
+                if (eventName === event || eventName.startsWith(event + '.')) {
+                    subscriptions.get(eventName).delete(context);
+                }
+            }
 
             return this;
         },
