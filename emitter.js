@@ -11,8 +11,9 @@ function getAllEvents(event) {
     const events = [];
 
     for (let i = tokens.length; i > 0; i--) {
-        events.push(tokens.slice(0, i)
-            .join('.'));
+        const currentEventTokens = tokens.slice(0, i);
+        const currentEventName = currentEventTokens.join('.');
+        events.push(currentEventName);
     }
 
     return events;
@@ -40,11 +41,14 @@ function getEmitter() {
                 contexts.set(context, []);
                 subscriptions.set(event, contexts);
             }
-            if (!subscriptions.get(event)
-                .has(context)) {
-                subscriptions.get(event).set(context, []);
+
+            const targetEvent = subscriptions.get(event);
+
+            if (!targetEvent.has(context)) {
+                targetEvent.set(context, []);
             }
-            subscriptions.get(event)
+
+            targetEvent
                 .get(context)
                 .push(handler);
 
@@ -58,11 +62,13 @@ function getEmitter() {
          * @returns {Object}
          */
         off: function (event, context) {
-            for (let eventName of subscriptions.keys()) {
-                if (eventName === event || eventName.startsWith(event + '.')) {
-                    subscriptions.get(eventName).delete(context);
-                }
-            }
+            [...subscriptions.keys()]
+                .filter(eventName =>
+                    eventName === event || eventName.startsWith(event + '.')
+                )
+                .forEach(eventName =>
+                    subscriptions.get(eventName).delete(context)
+                );
 
             return this;
         },
@@ -73,19 +79,17 @@ function getEmitter() {
          * @returns {Object}
          */
         emit: function (event) {
-            const events = getAllEvents(event);
-
-            for (let i = 0; i < events.length; i++) {
-                if (!subscriptions.has(events[i])) {
-                    continue;
-                }
-
-                subscriptions.get(events[i])
-                    .forEach((handlers, context) =>
-                        handlers
-                            .forEach(handler =>
-                                handler.call(context)));
-            }
+            getAllEvents(event)
+                .filter(x => subscriptions.has(x))
+                .forEach(x =>
+                    subscriptions.get(x)
+                        .forEach((handlers, context) =>
+                            handlers
+                                .forEach(handler =>
+                                    handler.call(context)
+                                )
+                        )
+                );
 
             return this;
         },
